@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Micro:bit Synth Presets</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#ffffff;--surface2:#f0f0f2;--surface3:#e8e8ec;
+  --border:#d4d4d8;--text:#1c1c1e;--dim:#6e6e73;
+  --osc:#0071e3;--flt:#e8590c;--env:#2f9e44;--lfo:#7048e8;--out:#0891b2;--fm:#e64980;
+  --radius:8px;
+}
+body{font-family:'Inter','SF Pro Display',-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+header{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-size:15px;font-weight:700;letter-spacing:2px;color:var(--osc);text-transform:uppercase;white-space:nowrap}
+.header-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+
+.btn{
+  padding:7px 14px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-family:inherit;font-size:12px;
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;
+  white-space:nowrap;font-weight:500;
+}
+.btn:hover{border-color:var(--osc);color:var(--osc)}
+.btn:active{transform:scale(0.97)}
+.btn.copy-btn{background:var(--env);border-color:var(--env);color:#fff;font-weight:600}
+.btn.copy-btn:hover{background:#37b24d}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+
+.app-layout{display:flex;flex:1;min-height:0}
+
+.sidebar{
+  width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+.sidebar-head{
+  font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--dim);padding:12px 14px 8px;flex-shrink:0;
+}
+.sidebar-list{flex:1;overflow-y:auto;padding:0 8px 12px}
+.preset-item{
+  display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;
+  cursor:pointer;transition:all .1s;border:1px solid transparent;margin-bottom:2px;
+}
+.preset-item:hover{background:var(--surface2);border-color:var(--border)}
+.preset-item.active{background:var(--osc);border-color:var(--osc);color:#fff}
+.preset-item.active .preset-name{color:#fff}
+.preset-item.active .preset-num{color:rgba(255,255,255,.6)}
+.preset-num{font-size:10px;color:var(--dim);min-width:16px;text-align:right}
+.preset-name{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preset-play{
+  width:26px;height:26px;border-radius:50%;border:none;background:transparent;
+  color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .12s;
+}
+.preset-play:hover{background:var(--surface3);color:var(--osc)}
+.preset-item.active .preset-play{color:rgba(255,255,255,.7)}
+.preset-item.active .preset-play:hover{background:rgba(255,255,255,.15);color:#fff}
+.preset-play svg{width:12px;height:12px}
+
+.main-scroll{flex:1;overflow-y:auto;padding:16px 20px 32px}
+
+.panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:12px;overflow:hidden;
+}
+.panel-head{
+  font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+.panel-head .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.panel-body{padding:10px 16px;display:flex;flex-direction:column;gap:6px}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:750px){.row2,.row3{grid-template-columns:1fr}}
+
+.osc-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
+.osc-grid .osc-col{display:flex;flex-direction:column;gap:6px}
+.osc-grid .param-label{width:42px;min-width:42px}
+.osc-extra{display:flex;flex-direction:column;gap:6px;margin-top:2px;padding-top:8px;border-top:1px solid var(--border)}
+
+.param{display:flex;align-items:center;gap:8px;height:28px}
+.param-label{font-size:11px;color:var(--dim);width:90px;min-width:90px;white-space:nowrap}
+.param-slider{
+  flex:1;-webkit-appearance:none;appearance:none;height:4px;
+  background:var(--border);border-radius:2px;outline:none;min-width:60px;
+}
+.param-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;cursor:pointer;
+  border:2px solid #fff;transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.param-slider::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.osc-s::-webkit-slider-thumb{background:var(--osc)}
+.flt-s::-webkit-slider-thumb{background:var(--flt)}
+.env-s::-webkit-slider-thumb{background:var(--env)}
+.lfo-s::-webkit-slider-thumb{background:var(--lfo)}
+.out-s::-webkit-slider-thumb{background:var(--out)}
+.fm-s::-webkit-slider-thumb{background:var(--fm)}
+
+.param-val{
+  width:62px;text-align:right;font-size:11px;font-family:'SF Mono','Fira Code',monospace;
+  color:var(--text);background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;padding:3px 6px;outline:none;
+}
+.param-val:focus{border-color:var(--osc)}
+
+select.param-dd{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:5px 8px;border-radius:5px;font-family:inherit;font-size:11px;cursor:pointer;outline:none;
+}
+
+.toggle{
+  position:relative;width:36px;height:20px;background:var(--border);border-radius:10px;
+  cursor:pointer;transition:background .2s;flex-shrink:0;
+}
+.toggle.on{background:var(--env)}
+.toggle::after{
+  content:'';position:absolute;width:14px;height:14px;background:#fff;
+  border-radius:50%;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.15);
+}
+.toggle.on::after{transform:translateX(16px)}
+
+.scope-wrap{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:16px;
+}
+.scope-head{
+  font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+canvas#scope{width:100%;height:100px;display:block;background:#fafafa}
+
+.keyboard-wrap{margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.keyboard{
+  display:flex;position:relative;height:80px;min-width:600px;user-select:none;
+}
+.key-w{
+  width:36px;height:80px;background:linear-gradient(180deg,#fff,#f0f0f2);
+  border:1px solid #c4c4c8;border-radius:0 0 5px 5px;cursor:pointer;position:relative;z-index:1;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;
+  font-size:8px;color:#999;transition:background .08s;flex-shrink:0;
+}
+.key-w:hover{background:linear-gradient(180deg,#e8f0ff,#dce4f0)}
+.key-w:active,.key-w.active{background:linear-gradient(180deg,var(--osc),#005bb5);color:#fff;border-color:var(--osc)}
+.key-b{
+  width:24px;height:50px;background:linear-gradient(180deg,#3a3a3c,#1c1c1e);
+  border:1px solid #000;border-radius:0 0 4px 4px;cursor:pointer;position:absolute;z-index:2;
+  transition:background .08s;
+}
+.key-b:hover{background:linear-gradient(180deg,#555,#3a3a3c)}
+.key-b:active,.key-b.active{background:linear-gradient(180deg,var(--lfo),#5030b0)}
+
+.output-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.output-str{
+  flex:1;font-family:'SF Mono','Fira Code',monospace;font-size:11px;line-height:1.6;
+  color:#1c7c3c;word-break:break-all;
+}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--text);color:#fff;padding:10px 24px;border-radius:8px;
+  font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:all .3s;z-index:100;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Micro:bit Synth</h1>
+  <div class="header-right">
+    <button class="btn copy-btn" onclick="copyPreset()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      Kopier
+    </button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-head">Presets</div>
+    <div class="sidebar-list" id="presetList"></div>
+  </nav>
+
+  <main class="main-scroll">
+    <!-- Waveform (always visible at top) -->
+    <div class="scope-wrap">
+      <div class="scope-head"><span class="dot" style="background:var(--osc)"></span>Waveform</div>
+      <canvas id="scope"></canvas>
+    </div>
+
+    <!-- Oscillators -->
+    <div class="panel" id="pnlOsc">
+      <div class="panel-head"><span class="dot" style="background:var(--osc)"></span>Oscillators</div>
+      <div class="panel-body" id="oscBody"></div>
+    </div>
+
+    <div class="row2">
+      <div class="panel" id="pnlFlt">
+        <div class="panel-head"><span class="dot" style="background:var(--flt)"></span>Filter</div>
+        <div class="panel-body" id="fltBody"></div>
+      </div>
+      <div class="panel" id="pnlEnv">
+        <div class="panel-head"><span class="dot" style="background:var(--env)"></span>Envelope</div>
+        <div class="panel-body" id="envBody"></div>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="panel" id="pnlLfo">
+        <div class="panel-head"><span class="dot" style="background:var(--lfo)"></span>LFO &amp; Vibrato</div>
+        <div class="panel-body" id="lfoBody"></div>
+      </div>
+      <div class="panel" id="pnlFm">
+        <div class="panel-head"><span class="dot" style="background:var(--fm)"></span>FM</div>
+        <div class="panel-body" id="fmBody"></div>
+      </div>
+      <div class="panel" id="pnlOut">
+        <div class="panel-head"><span class="dot" style="background:var(--out)"></span>Output</div>
+        <div class="panel-body" id="outBody"></div>
+      </div>
+    </div>
+
+    <!-- Keyboard -->
+    <div class="keyboard-wrap"><div class="keyboard" id="keyboard"></div></div>
+
+    <!-- Output string -->
+    <div class="output-box">
+      <span class="output-str" id="outputStr"></span>
+      <button class="btn copy-btn" onclick="copyPreset()">Kopier</button>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  EXACT PORT OF pxt-synth-v2 MicroSynth engine
+// ═══════════════════════════════════════════════════════
+
+const SR = 44100;
+const BLOCK = 256;
+const PI = Math.PI;
+
+// SynthTables
+const notetab = new Float32Array(129);
+for (let i = 0; i < 128; i++) notetab[i] = Math.pow(2, (i - 69) / 12);
+notetab[128] = notetab[127];
+
+function interpNote(ind) {
+  const i = Math.min(Math.max(Math.floor(ind), 0), 127);
+  const frac = ind - i;
+  return (1 - frac) * notetab[i] + frac * notetab[i + 1];
+}
+
+// Oscillator — exact port
+class Osc {
+  constructor() { this.acc = 0; this.delta = 0; this.pw = 0; this.wave = 0; }
+  process() {
+    const out = this.acc;
+    this.acc += this.delta;
+    if (this.acc > 1) this.acc -= 2;
+    switch (this.wave) {
+      case 0: return out; // Saw
+      case 1: return (out > this.pw ? 1 : -1) + this.pw; // Pulse
+      case 2: default: return Math.abs(out) * 2 - 1; // Triangle
+    }
+  }
+  processPM(pm) {
+    const out = this.acc;
+    this.acc += this.delta + pm;
+    if (this.acc > 1) this.acc -= 2;
+    else if (this.acc < -1) this.acc += 2;
+    switch (this.wave) {
+      case 0: return out;
+      case 1: return (out > this.pw ? 1 : -1) + this.pw;
+      case 2: default: return Math.abs(out) * 2 - 1;
+    }
+  }
+  setFreq(f) { this.delta = 2 * f / SR; }
+  setType(t) { this.wave = t; }
+  setPW(pw) { this.pw = pw; }
+}
+
+// SVF — Vadim Zavalishin TPT, exact polynomial tan from Mutable Instruments
+class SVF {
+  constructor() { this.g = 0; this.g1 = 0; this.d = 0; this.s1 = 0; this.s2 = 0; }
+  _tan(x) {
+    const pi2 = PI * PI;
+    const pi3 = pi2 * PI;
+    const pi5 = pi3 * pi2;
+    const a = 3.260e-01 * pi3;
+    const b = 1.823e-01 * pi5;
+    const f2 = x * x;
+    return x * (PI + f2 * (a + b * f2));
+  }
+  set(cutoff, res) {
+    const r = 1 - res;
+    this.g = this._tan(cutoff);
+    this.g1 = 2 * r + this.g;
+    this.d = 1 / (1 + 2 * r * this.g + this.g * this.g);
+  }
+  process(x, ftype) {
+    const hp = (x - this.g1 * this.s1 - this.s2) * this.d;
+    const v1 = this.g * hp;
+    const bp = v1 + this.s1;
+    this.s1 = bp + v1;
+    const v2 = this.g * bp;
+    const lp = v2 + this.s2;
+    this.s2 = lp + v2;
+    switch (ftype) {
+      case 0: default: return lp; // LPF
+      case 2: return bp; // BPF
+      case 1: return hp; // HPF
+    }
+  }
+  reset() { this.s1 = 0; this.s2 = 0; }
+}
+
+// ADSR — exact port
+class ADSR {
+  constructor() { this.reset(); this.inc = [0, 0, 0, 0]; this.levels = [0, 1, 0.5, 0, 0]; }
+  reset() { this.phase = 0; this.phaseInc = 0; this.cur = 0; this.state = 4; this.startVal = 0; }
+  process() {
+    if (this.state === 4) return 0;
+    if (this.phase >= 1) {
+      this.phase = 0;
+      const next = this.state + 1;
+      this.state = next;
+      this.startVal = this.levels[next];
+      this.phaseInc = this.inc[this.state] || 0;
+    }
+    this.phase += this.phaseInc;
+    this.cur = this.startVal + (this.levels[this.state + 1] - this.startVal) * this.phase;
+    return this.cur;
+  }
+  gate(g) {
+    this.startVal = this.cur;
+    this.phase = 0;
+    this.state = g ? 0 : 3;
+    this.phaseInc = this.inc[this.state] || 0;
+  }
+  done() { return this.state === 4; }
+  value() { return this.cur; }
+  set(a, d, s, r) {
+    const rSR = 1 / SR;
+    this.inc[0] = Math.min(rSR / a, 1);
+    this.inc[1] = Math.min(rSR / d, 1);
+    this.inc[2] = 0;
+    this.levels[2] = s;
+    this.inc[3] = Math.min(rSR / r, 1);
+  }
+}
+
+// Render a note with a given preset, returning Float32Array
+function renderNote(preset, midiNote, durationSec, maxSec) {
+  const osc = [new Osc(), new Osc()];
+  const lfo = new Osc();
+  const vibLfo = new Osc();
+  const filter = new SVF();
+  const env = new ADSR();
+
+  const p = preset;
+  const gateLen = Math.round(durationSec * SR);
+  const maxLen = Math.round(maxSec * SR);
+  const buf = new Float32Array(maxLen);
+
+  // apply preset
+  filter.reset();
+  osc[0].setPW(p.osc1Pw); osc[1].setPW(p.osc2Pw);
+  osc[0].setType(p.osc1Shape); osc[1].setType(p.osc2Shape);
+  lfo.setType(p.lfoShape);
+  lfo.setFreq(p.lfoFreq * BLOCK);
+  env.set(p.envA, p.envD, p.envS, p.envR);
+  filter.set(p.vcfCutoff, p.vcfReso);
+  vibLfo.setType(2); // Triangle
+
+  // trig
+  const gain = p.gain;
+  let smoothedGate = 0;
+  let stopping = false;
+  let noiseState = 12345;
+
+  env.reset();
+  env.gate(true);
+
+  let samplesRendered = 0;
+  let noteOff = false;
+
+  while (samplesRendered < maxLen) {
+    const blockLen = Math.min(BLOCK, maxLen - samplesRendered);
+
+    // per-block processing
+    const lfoVal = lfo.process();
+    vibLfo.setFreq(p.vibFreq * BLOCK);
+    const vib = vibLfo.process() * p.vibAmount;
+
+    const lfoFlt = p.vcfLfo * lfoVal * 40;
+    const envFlt = p.vcfEnv * env.value() * 80;
+    const keyFlt = p.vcfKeyFollow * (midiNote + p.tune - 60);
+
+    const filtNote = p.vcfCutoff * (127 - 40) + 40 + lfoFlt + envFlt + keyFlt;
+    const filtFreq = (700 / SR) * interpNote(filtNote);
+    filter.set(filtFreq, p.vcfReso);
+
+    const noteFreq = 440 * interpNote(midiNote + p.tune + vib);
+    osc[0].setFreq(noteFreq);
+    osc[1].setFreq(noteFreq * interpNote(p.osc2Transpose + 69));
+
+    osc[0].setPW(p.osc1Pw + p.osc1Pwm * lfoVal);
+    osc[1].setPW(p.osc2Pw + p.osc2Pwm * lfoVal);
+
+    // per-sample processing
+    for (let i = 0; i < blockLen; i++) {
+      const envVal = env.process();
+      const osc1Out = osc[0].process();
+      const gate = stopping ? 0 : 1;
+      smoothedGate += (gate - smoothedGate) * 0.005;
+      const ampEnv = p.ampGate ? smoothedGate : envVal;
+
+      const oscs = osc1Out * p.osc1Vol + osc[1].processPM(p.fmAmount * osc1Out) * p.osc2Vol;
+
+      noiseState = (Math.imul(1664525, noiseState) + 1013904223) | 0;
+      const noise = p.noise * noiseState / 2147483647;
+
+      const out = gain * ampEnv * filter.process(oscs + noise, p.vcfType);
+      buf[samplesRendered + i] = Math.max(-1, Math.min(1, out));
+    }
+
+    samplesRendered += blockLen;
+
+    // gate off
+    if (!noteOff && samplesRendered >= gateLen) {
+      env.gate(false);
+      stopping = true;
+      noteOff = true;
+    }
+
+    // check done
+    if (noteOff) {
+      if (p.ampGate) { if (smoothedGate < 1e-3) break; }
+      else { if (env.done()) break; }
+    }
+  }
+
+  return buf.subarray(0, samplesRendered);
+}
+
+// ═══════════════════════════════════════════════════════
+//  PRESET PARSING (using exact paramRemapArray mapping)
+// ═══════════════════════════════════════════════════════
+
+// Preset string order → struct field name
+const STRING_FIELDS = [
+  'osc1Shape','osc2Shape','osc2Transpose','osc1Vol','osc2Vol',
+  'osc1Pw','osc2Pw','osc1Pwm','osc2Pwm','fmAmount',
+  'vcfType','vcfCutoff','vcfReso','vcfEnv','vcfLfo','vcfKeyFollow',
+  'envA','envD','envS','envR',
+  'lfoShape','lfoFreq','vibFreq','vibAmount',
+  'gain','tune','noise','ampGate'
+];
+
+const OSC_NAMES = ['Saw','Pulse','Triangle'];
+const FLT_NAMES = ['LPF','HPF','BPF'];
+
+function parsePresetString(str) {
+  const inner = str.replace(/^\{\s*/, '').replace(/\s*\}$/, '');
+  const tokens = inner.split(',').map(t => t.trim());
+  const p = {};
+  for (let i = 0; i < STRING_FIELDS.length && i < tokens.length; i++) {
+    const field = STRING_FIELDS[i];
+    const tok = tokens[i];
+    if (field === 'osc1Shape' || field === 'osc2Shape' || field === 'lfoShape') {
+      if (tok.includes('Saw')) p[field] = 0;
+      else if (tok.includes('Pulse')) p[field] = 1;
+      else if (tok.includes('Triangle')) p[field] = 2;
+      else p[field] = parseInt(tok);
+    } else if (field === 'vcfType') {
+      if (tok.includes('LPF')) p[field] = 0;
+      else if (tok.includes('HPF')) p[field] = 1;
+      else if (tok.includes('BPF')) p[field] = 2;
+      else p[field] = parseInt(tok);
+    } else if (field === 'ampGate') {
+      p[field] = tok.includes('true') || tok === '1';
+    } else {
+      p[field] = parseFloat(tok);
+    }
+  }
+  return p;
+}
+
+function buildPresetString(p) {
+  const parts = STRING_FIELDS.map(f => {
+    if (f === 'osc1Shape' || f === 'osc2Shape' || f === 'lfoShape')
+      return 'OscType::' + OSC_NAMES[p[f]];
+    if (f === 'vcfType')
+      return 'FilterType::' + FLT_NAMES[p[f]];
+    if (f === 'ampGate')
+      return p[f] ? 'true' : 'false';
+    return (typeof p[f] === 'number') ? p[f].toFixed(6) : '0.000000';
+  });
+  return '{ ' + parts.join(', ') + ' }';
+}
+
+function parseAllPresets(text) {
+  const presets = [];
+  const lines = text.split('\n');
+  let name = null;
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t.startsWith('{')) {
+      if (name) {
+        const p = parsePresetString(t);
+        if (p.osc1Shape !== undefined) presets.push({ name, params: p });
+        name = null;
+      }
+    } else if (!t.startsWith('Lyder') && !t.startsWith('husk')) {
+      name = t.replace(/:$/, '');
+    }
+  }
+  return presets;
+}
+
+// ═══════════════════════════════════════════════════════
+//  PRESET DATA
+// ═══════════════════════════════════════════════════════
+
+const PRESETS_RAW = `NY FMpluck:
+{ OscType::Triangle, OscType::Pulse, 12.000000, 1.000000, 1.000000, 0.000000, 0.000000, 0.210859, 0.000000, 0.093578, FilterType::LPF, 0.000000, 0.548227, 0.897500, 0.000000, 0.395250, 0.000000, 0.320156, 0.000000, 1.040781, OscType::Triangle, 16.641563, 8.931875, 0.125250, 0.500000, 0.000000, 0.343422, false }
+
+NY PWM DOOM
+{ OscType::Pulse, OscType::Pulse, -12.000000, 1.000000, 1.000000, 0.000000, 0.000000, 0.131672, 0.216203, 0.000000, FilterType::LPF, 0.000000, 0.548227, 0.881281, 0.000000, 0.395250, 0.000000, 0.637187, 0.297000, 1.040781, OscType::Triangle, 3.550313, 8.931875, 0.000000, 0.500000, 0.000000, 0.320547, false }
+
+Wobbly saw
+{ OscType::Pulse, OscType::Pulse, 0.000000, 0.500000, 0.500000, -0.304000, -0.544000, 0.300000, 0.300000, 0.168000, FilterType::LPF, 0.280000, 0.131376, 0.608000, 0.392000, 0.000000, 0.800000, 0.000000, 0.500000, 1.000000, OscType::Triangle, 10.420000, 5.000000, 0.000000, 0.500000, 0.000000, 0.296000, false }
+
+Fatter wobbly saw:
+{ OscType::Pulse, OscType::Pulse, 0.192000, 0.500000, 0.552000, 0.000000, 0.000000, 0.300000, 0.300000, 0.000000, FilterType::LPF, 0.400000, 0.000000, 0.300000, 0.100000, 0.000000, 0.000000, 0.500000, 0.500000, 1.000000, OscType::Triangle, 3.220000, 13.560000, 0.184000, 0.500000, 0.000000, 0.000000, false }
+
+Triangle pluck
+{ OscType::Triangle, OscType::Triangle, 12.000000, 1.000000, 1.000000, 0.000000, 0.000000, 0.300000, 0.300000, 0.008000, FilterType::LPF, 0.208000, 0.000000, 0.596000, 0.000000, 1.000000, 0.000000, 0.100000, 0.192000, 1.020000, OscType::Triangle, 3.220000, 2.920000, 0.040000, 0.624000, 0.000000, 0.000000, false }
+
+Saw filter lfo
+{ OscType::Saw, OscType::Saw, 12.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.300000, 0.300000, 0.000000, FilterType::LPF, 0.000000, 0.440496, 0.912000, 0.716000, 1.000000, 0.000000, 0.400000, 0.360000, 1.020000, OscType::Triangle, 6.340000, 10.360000, 0.184000, 0.624000, 0.000000, 0.212000, false }
+
+Noisy Saw
+{ OscType::Triangle, OscType::Saw, -12.096000, 0.500000, 0.500000, 0.000000, 0.000000, 0.300000, 0.300000, 0.004000, FilterType::LPF, 0.332000, 0.000000, 0.608000, 0.220000, 0.000000, 0.000000, 0.320000, 0.376000, 0.880000, OscType::Triangle, 2.320000, 9.400000, 0.096000, 0.500000, 0.000000, 0.148000, false }
+
+Soft keys
+{ OscType::Saw, OscType::Triangle, 12.000000, 0.540000, 0.524000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, FilterType::LPF, 0.000000, 0.635184, 0.412000, 0.000000, 1.000000, 0.000000, 0.320000, 0.376000, 0.880000, OscType::Triangle, 0.000000, 13.720000, 0.000000, 0.500000, 0.000000, 0.076000, false }
+
+Soft PWM fatness
+{ OscType::Pulse, OscType::Pulse, 0.288000, 0.540000, 0.524000, -0.040000, 0.536000, 0.480000, 0.224000, 0.000000, FilterType::LPF, 0.000000, 0.750000, 0.428000, 0.000000, 1.000000, 0.000000, 0.320000, 0.376000, 0.880000, OscType::Triangle, 2.000000, 13.720000, 0.000000, 0.500000, 0.000000, 0.000000, false }
+
+Mute brass pads:
+{ OscType::Triangle, OscType::Saw, 12.192000, 0.368000, 0.312000, -0.040000, 0.536000, 0.480000, 0.224000, 0.000000, FilterType::LPF, 0.000000, 0.267264, 0.632000, 0.304000, 1.000000, 1.260000, 1.580000, 0.888000, 1.760000, OscType::Triangle, 0.640000, 11.160000, 0.144000, 0.500000, 0.000000, 0.076000, false }
+
+Simple Organ:
+{ OscType::Triangle, OscType::Triangle, 12.000000, 0.368000, 0.536000, -0.040000, 0.536000, 0.480000, 0.224000, 0.000000, FilterType::LPF, 0.000000, 0.267264, 0.596000, 0.000000, 1.000000, 0.000000, 1.580000, 0.888000, 1.760000, OscType::Triangle, 0.640000, 15.280000, 0.000000, 0.500000, 0.000000, 0.000000, true }
+
+Slightly annoyed FM Bass
+{ OscType::Saw, OscType::Pulse, -12.288000, 0.484000, 0.500000, 0.000000, 0.000000, 0.300000, 0.708000, 0.028000, FilterType::LPF, 0.000000, 0.548416, 0.524000, 0.192000, 0.000000, 0.100000, 0.360000, 0.000000, 0.300000, OscType::Triangle, 2.080000, 0.000000, 0.000000, 0.588000, 0.000000, 0.000000, false }
+
+Alternate version
+{ OscType::Pulse, OscType::Saw, -23.900000, 0.484000, 0.500000, 0.000000, 0.000000, 0.300000, 0.708000, 0.056000, FilterType::LPF, 0.000000, 0.493056, 0.476000, 0.192000, 0.000000, 0.100000, 0.360000, 0.000000, 0.300000, OscType::Triangle, 2.080000, 11.400000, 0.000000, 0.588000, 0.000000, 0.152000, false }
+
+Angry FM Bass:
+{ OscType::Pulse, OscType::Saw, -23.900000, 0.484000, 0.500000, 0.000000, 0.000000, 0.300000, 0.708000, 0.056000, FilterType::LPF, 0.000000, 0.493056, 0.476000, 0.192000, 0.000000, 0.100000, 0.360000, 0.000000, 0.300000, OscType::Triangle, 2.080000, 11.400000, 0.000000, 0.588000, 0.000000, 0.152000, false }
+
+Angrier FMier Bass:
+{ OscType::Pulse, OscType::Saw, -23.900000, 0.484000, 0.500000, 0.000000, 0.000000, 0.300000, 0.708000, 0.056000, FilterType::LPF, 0.000000, 0.493056, 0.476000, 0.192000, 0.000000, 0.100000, 0.360000, 0.000000, 0.300000, OscType::Triangle, 2.080000, 11.400000, 0.000000, 0.588000, 0.000000, 0.152000, false }
+
+Sykt fett lyn:
+{ OscType::Pulse, OscType::Pulse, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.300000, 0.300000, 0.892000, FilterType::LPF, 0.400000, 0.826944, 0.420000, 0.100000, 1.000000, 0.000000, 1.720000, 0.500000, 2.240000, OscType::Triangle, 0.500000, 5.000000, 1.000000, 0.500000, 0.000000, 0.952000, false }`;
+
+const presets = parseAllPresets(PRESETS_RAW);
+let activeIdx = 0;
+let lastRendered = null;
+let playingSource = null;
+let audioCtx = null;
+
+// ═══════════════════════════════════════════════════════
+//  UI DEFINITION
+// ═══════════════════════════════════════════════════════
+
+const PARAMS = {
+  osc1: [
+    { field:'osc1Shape', label:'Shape', type:'osc' },
+    { field:'osc1Vol',   label:'Level', min:0, max:1, step:0.001, cls:'osc-s' },
+    { field:'osc1Pw',    label:'PW',    min:-1, max:1, step:0.001, cls:'osc-s' },
+    { field:'osc1Pwm',   label:'PWM',   min:0, max:1, step:0.001, cls:'osc-s' },
+  ],
+  osc2: [
+    { field:'osc2Shape', label:'Shape', type:'osc' },
+    { field:'osc2Vol',   label:'Level', min:0, max:1, step:0.001, cls:'osc-s' },
+    { field:'osc2Pw',    label:'PW',    min:-1, max:1, step:0.001, cls:'osc-s' },
+    { field:'osc2Pwm',   label:'PWM',   min:0, max:1, step:0.001, cls:'osc-s' },
+  ],
+  oscExtra: [
+    { field:'osc2Transpose', label:'Osc 2 Detune', min:-36, max:36, step:0.001, cls:'osc-s' },
+  ],
+  flt: [
+    { field:'vcfType',      label:'Type',        type:'flt' },
+    { field:'vcfCutoff',    label:'Cutoff',      min:0, max:1, step:0.001, cls:'flt-s' },
+    { field:'vcfReso',      label:'Resonance',   min:0, max:1, step:0.001, cls:'flt-s' },
+    { field:'vcfEnv',       label:'Env Amount',  min:0, max:1, step:0.001, cls:'flt-s' },
+    { field:'vcfLfo',       label:'LFO Amount',  min:0, max:1, step:0.001, cls:'flt-s' },
+    { field:'vcfKeyFollow', label:'Key Follow',  min:0, max:1, step:0.001, cls:'flt-s' },
+  ],
+  env: [
+    { field:'envA',     label:'Attack',  min:0, max:3, step:0.001, cls:'env-s' },
+    { field:'envD',     label:'Decay',   min:0, max:3, step:0.001, cls:'env-s' },
+    { field:'envS',     label:'Sustain', min:0, max:1, step:0.001, cls:'env-s' },
+    { field:'envR',     label:'Release', min:0, max:4, step:0.001, cls:'env-s' },
+    { field:'ampGate',  label:'Amp Gate', type:'bool' },
+  ],
+  lfo: [
+    { field:'lfoShape',  label:'LFO Shape',   type:'osc' },
+    { field:'lfoFreq',   label:'LFO Freq',    min:0, max:20, step:0.001, cls:'lfo-s' },
+    { field:'vibFreq',   label:'Vib Freq',    min:0, max:20, step:0.001, cls:'lfo-s' },
+    { field:'vibAmount', label:'Vib Amount',   min:0, max:2, step:0.001, cls:'lfo-s' },
+  ],
+  fm: [
+    { field:'fmAmount', label:'FM Amount', min:0, max:2, step:0.001, cls:'fm-s' },
+  ],
+  out: [
+    { field:'gain',  label:'Gain',  min:0, max:2, step:0.001, cls:'out-s' },
+    { field:'tune',  label:'Tune',  min:-24, max:24, step:0.001, cls:'out-s' },
+    { field:'noise', label:'Noise', min:0, max:1, step:0.001, cls:'out-s' },
+  ]
+};
+
+function buildParamHTML(group) {
+  return group.map(p => {
+    const id = 'p_' + p.field;
+    if (p.type === 'osc') {
+      return `<div class="param">
+        <span class="param-label">${p.label}</span>
+        <select class="param-dd" id="${id}" onchange="setP('${p.field}',+this.value)">
+          <option value="0">Saw</option><option value="1">Pulse</option><option value="2">Triangle</option>
+        </select></div>`;
+    }
+    if (p.type === 'flt') {
+      return `<div class="param">
+        <span class="param-label">${p.label}</span>
+        <select class="param-dd" id="${id}" onchange="setP('${p.field}',+this.value)">
+          <option value="0">LPF</option><option value="1">HPF</option><option value="2">BPF</option>
+        </select></div>`;
+    }
+    if (p.type === 'bool') {
+      return `<div class="param">
+        <span class="param-label">${p.label}</span>
+        <div class="toggle" id="${id}" onclick="toggleP('${p.field}',this)"></div>
+      </div>`;
+    }
+    return `<div class="param">
+      <span class="param-label">${p.label}</span>
+      <input type="range" class="param-slider ${p.cls}" id="${id}"
+        min="${p.min}" max="${p.max}" step="${p.step}"
+        oninput="slideP('${p.field}',this.value)">
+      <input type="text" class="param-val" id="${id}_v"
+        onchange="textP('${p.field}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+    </div>`;
+  }).join('');
+}
+
+function initUI() {
+  document.getElementById('oscBody').innerHTML =
+    `<div class="osc-grid">
+       <div class="osc-col"><div style="font-size:10px;font-weight:600;letter-spacing:1px;color:var(--osc);margin-bottom:2px">OSC 1</div>${buildParamHTML(PARAMS.osc1)}</div>
+       <div class="osc-col"><div style="font-size:10px;font-weight:600;letter-spacing:1px;color:var(--osc);margin-bottom:2px">OSC 2</div>${buildParamHTML(PARAMS.osc2)}</div>
+     </div>
+     <div class="osc-extra">${buildParamHTML(PARAMS.oscExtra)}</div>`;
+  document.getElementById('fltBody').innerHTML = buildParamHTML(PARAMS.flt);
+  document.getElementById('envBody').innerHTML = buildParamHTML(PARAMS.env);
+  document.getElementById('lfoBody').innerHTML = buildParamHTML(PARAMS.lfo);
+  document.getElementById('fmBody').innerHTML  = buildParamHTML(PARAMS.fm);
+  document.getElementById('outBody').innerHTML = buildParamHTML(PARAMS.out);
+
+  const list = document.getElementById('presetList');
+  presets.forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+    item.id = 'pi_' + i;
+    item.innerHTML = `<span class="preset-num">${i + 1}</span>
+      <span class="preset-name">${p.name}</span>
+      <button class="preset-play" onclick="event.stopPropagation();quickPlay(${i})" title="Spill av">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+      </button>`;
+    item.onclick = () => selectPreset(i);
+    list.appendChild(item);
+  });
+
+  buildKeyboard();
+}
+
+function refreshUI() {
+  const p = presets[activeIdx].params;
+  const allGroups = [PARAMS.osc1, PARAMS.osc2, PARAMS.oscExtra, PARAMS.flt, PARAMS.env, PARAMS.lfo, PARAMS.fm, PARAMS.out];
+  for (const group of allGroups) {
+    for (const def of group) {
+      const el = document.getElementById('p_' + def.field);
+      if (!el) continue;
+      if (def.type === 'osc' || def.type === 'flt') {
+        el.value = p[def.field];
+      } else if (def.type === 'bool') {
+        el.classList.toggle('on', !!p[def.field]);
+      } else {
+        el.value = p[def.field];
+        const ve = document.getElementById('p_' + def.field + '_v');
+        if (ve) ve.value = (typeof p[def.field] === 'number') ? p[def.field].toFixed(3) : p[def.field];
+      }
+    }
+  }
+  refreshOutput();
+}
+
+function setP(field, val) { presets[activeIdx].params[field] = val; refreshOutput(); }
+function slideP(field, val) {
+  const v = parseFloat(val);
+  presets[activeIdx].params[field] = v;
+  const ve = document.getElementById('p_' + field + '_v');
+  if (ve) ve.value = v.toFixed(3);
+  refreshOutput();
+}
+function textP(field, val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return;
+  presets[activeIdx].params[field] = v;
+  const sl = document.getElementById('p_' + field);
+  if (sl && sl.type === 'range') sl.value = v;
+  refreshOutput();
+}
+function toggleP(field, el) {
+  const nv = !presets[activeIdx].params[field];
+  presets[activeIdx].params[field] = nv;
+  el.classList.toggle('on', nv);
+  refreshOutput();
+}
+
+let scopeTimer = null;
+function refreshOutput() {
+  document.getElementById('outputStr').textContent = buildPresetString(presets[activeIdx].params);
+  if (scopeTimer) cancelAnimationFrame(scopeTimer);
+  scopeTimer = requestAnimationFrame(renderPreview);
+}
+
+function renderPreview() {
+  const p = presets[activeIdx].params;
+  const dur = p.ampGate ? 0.8 : 0.5;
+  const maxLen = dur + Math.max(p.envR || 0, 2) + 1;
+  const samples = renderNote(p, 60, dur, maxLen);
+  drawScope(samples);
+}
+
+function selectPreset(idx) {
+  activeIdx = idx;
+  document.querySelectorAll('.preset-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+  refreshUI();
+}
+
+function quickPlay(idx) {
+  selectPreset(idx);
+  playNote(60);
+}
+
+function copyPreset() {
+  const str = buildPresetString(presets[activeIdx].params);
+  navigator.clipboard.writeText(str).then(() => showToast('Kopiert!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const BASE_OCTAVE = 3;
+const NUM_OCTAVES = 3;
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  const whiteNotes = [];
+  const blackNotes = [];
+  const startMidi = 12 * (BASE_OCTAVE + 1); // C3 = 48
+
+  for (let oct = 0; oct < NUM_OCTAVES; oct++) {
+    for (let n = 0; n < 12; n++) {
+      const midi = startMidi + oct * 12 + n;
+      const isBlack = [1,3,6,8,10].includes(n);
+      if (isBlack) blackNotes.push({ midi, n, oct });
+      else whiteNotes.push({ midi, n, oct });
+    }
+  }
+  // extra C at end
+  whiteNotes.push({ midi: startMidi + NUM_OCTAVES * 12, n: 0, oct: NUM_OCTAVES });
+
+  const ww = 36;
+  kb.style.width = (whiteNotes.length * ww) + 'px';
+
+  whiteNotes.forEach((w, i) => {
+    const key = document.createElement('div');
+    key.className = 'key-w';
+    key.style.left = (i * ww) + 'px';
+    key.style.position = 'absolute';
+    key.dataset.midi = w.midi;
+    const noteName = NOTE_NAMES[w.n];
+    if (w.n === 0) key.textContent = noteName + (BASE_OCTAVE + w.oct);
+    key.onpointerdown = e => { e.preventDefault(); playNote(w.midi); key.classList.add('active'); };
+    key.onpointerup = () => key.classList.remove('active');
+    key.onpointerleave = () => key.classList.remove('active');
+    kb.appendChild(key);
+  });
+
+  const blackOffsets = { 1: 0.65, 3: 1.65, 6: 3.65, 8: 4.65, 10: 5.65 };
+  blackNotes.forEach(b => {
+    const key = document.createElement('div');
+    key.className = 'key-b';
+    const whiteIdx = Math.floor(b.n < 5 ? b.n / 2 : (b.n + 1) / 2);
+    const xOff = (b.oct * 7 + blackOffsets[b.n]) * ww;
+    key.style.left = xOff + 'px';
+    key.dataset.midi = b.midi;
+    key.onpointerdown = e => { e.preventDefault(); playNote(b.midi); key.classList.add('active'); };
+    key.onpointerup = () => key.classList.remove('active');
+    key.onpointerleave = () => key.classList.remove('active');
+    kb.appendChild(key);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  AUDIO PLAYBACK & SCOPE
+// ═══════════════════════════════════════════════════════
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioContext({ sampleRate: SR });
+  return audioCtx;
+}
+
+function playNote(midi) {
+  stopPlayback();
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const p = presets[activeIdx].params;
+  const dur = p.ampGate ? 0.8 : 0.5;
+  const maxLen = dur + Math.max(p.envR || 0, 2) + 1;
+  const samples = renderNote(p, midi, dur, maxLen);
+
+  lastRendered = samples;
+  drawScope(samples);
+
+  const abuf = ctx.createBuffer(1, samples.length, SR);
+  abuf.copyToChannel(samples, 0);
+  const src = ctx.createBufferSource();
+  src.buffer = abuf;
+  src.connect(ctx.destination);
+  src.start();
+  playingSource = src;
+  src.onended = () => { if (playingSource === src) playingSource = null; };
+}
+
+function stopPlayback() {
+  if (playingSource) { try { playingSource.stop(); } catch(e){} playingSource = null; }
+}
+
+function drawScope(samples) {
+  const canvas = document.getElementById('scope');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = '#e4e4e8';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+  ctx.moveTo(0, h / 4); ctx.lineTo(w, h / 4);
+  ctx.moveTo(0, 3 * h / 4); ctx.lineTo(w, 3 * h / 4);
+  ctx.stroke();
+
+  if (!samples || samples.length === 0) return;
+
+  const samplesPerPx = Math.max(1, Math.floor(samples.length / w));
+  ctx.strokeStyle = '#0071e3';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const si = Math.floor(x * samples.length / w);
+    let mn = 1, mx = -1;
+    for (let j = 0; j < samplesPerPx && si + j < samples.length; j++) {
+      const v = samples[si + j];
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    const y1 = (1 - mx) * h / 2;
+    const y2 = (1 - mn) * h / 2;
+    if (x === 0) ctx.moveTo(x, (y1 + y2) / 2);
+    else { ctx.lineTo(x, y1); ctx.lineTo(x, y2); }
+  }
+  ctx.stroke();
+
+  // draw first ~3 cycles of the waveform in detail (zoomed)
+  const zoomLen = Math.min(samples.length, 2000);
+  ctx.strokeStyle = 'rgba(112, 72, 232, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const si = Math.floor(x * zoomLen / w);
+    const v = samples[si];
+    const y = (1 - v) * h / 2;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const keyMap = { 'a':60,'w':61,'s':62,'e':63,'d':64,'f':65,'t':66,'g':67,'y':68,'h':69,'u':70,'j':71,'k':72 };
+  if (keyMap[e.key] !== undefined && !e.repeat) playNote(keyMap[e.key]);
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+
+initUI();
+selectPreset(0);
+</script>
+</body>
+</html>
